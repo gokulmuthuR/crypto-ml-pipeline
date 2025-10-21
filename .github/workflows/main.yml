@@ -3,7 +3,7 @@ name: Fetch and Commit OHLCV Data (Every 12 Hours)
 on:
   schedule:
     - cron: "0 */12 * * *"   # Every 12 hours
-  workflow_dispatch:
+  workflow_dispatch: {}       # Manual trigger from GitHub UI
 
 jobs:
   fetch_ohlcv_job:
@@ -22,9 +22,11 @@ jobs:
         run: |
           pip install -r requirements.txt
 
+      - name: Ensure data folder exists
+        run: mkdir -p data/ohlcv
+
       - name: Run fetch script
-        run: |
-          python fetch_ohlcv.py
+        run: python fetch_ohlcv.py
 
       - name: Commit and push updated data
         run: |
