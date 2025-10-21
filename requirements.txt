@@ -1,0 +1,10 @@
+pandas
+pyarrow
+requests
+numpy
+scikit-learn
+xgboost
+joblib
+schedule
+python-binance
+ta
