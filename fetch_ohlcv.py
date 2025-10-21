@@ -15,7 +15,7 @@ TIMEFRAMES = ["1m", "5m", "15m", "30m", "1h", "4h", "1d"]
 OUT_DIR = Path("data/ohlcv")
 OUT_DIR.mkdir(parents=True, exist_ok=True)
 
-BINANCE_API_URL = "https://api.binance.com/api/v3/klines"
+BINANCE_API_URL = "BINANCE_API_URL = "https://data-api.binance.vision/api/v3/klines"
 BINANCE_MAX_LIMIT = 1000
 RETRY_LIMIT = 4
 REQUEST_SLEEP = 0.15  # polite pause between requests
