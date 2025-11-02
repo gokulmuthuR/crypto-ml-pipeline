@@ -26,7 +26,7 @@ jobs:
           pip install -r requirements.txt
 
       - name: Run Feature Engineering
-        run: python feature_engineering_v3.py
+        run: python feature_engineering_v3.py --mode full --force-heavy
 
       - name: Commit Feature Files
         run: |
@@ -65,7 +65,7 @@ jobs:
           pip install -r requirements.txt
 
       - name: Run Master Merge
-        run: python master_features.py
+        run: python master_features.py --mode full
 
       - name: Commit Master Files
         run: |
