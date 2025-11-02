@@ -8,3 +8,4 @@ joblib
 schedule
 python-binance
 ta
+numba
