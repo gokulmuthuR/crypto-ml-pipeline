@@ -4,55 +4,52 @@ on:
   schedule:
     - cron: "0 7 * * *"   # 12:30 PM IST
     - cron: "0 19 * * *"  # 12:30 AM IST
-  workflow_dispatch: {}     # manual trigger
-
-env:
-  NUMBA_DISABLE_JIT: "0"     # allow numba, you can set to 1 if fails
+  workflow_dispatch: {}
 
 jobs:
+
   feature-engineering:
     name: Step 1 — Feature Engineering
     runs-on: ubuntu-latest
 
     steps:
       - uses: actions/checkout@v4
-
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
       - uses: actions/setup-python@v5
         with:
           python-version: "3.10"
+      - run: pip install -r requirements.txt
+      - run: python feature_engineering_v3.py
 
-      - name: Install Python dependencies (fast UV install)
+      - name: Commit Feature Files
         run: |
-          pip install uv
-          uv pip install -r requirements.txt --system
-          uv pip install numba --system  # ensure numba installed
-
-      - name: Run Feature Engineering
-        run: python feature_engineering_v3.py
+          git config --global user.name "github-actions"
+          git config --global user.email "github-actions@github.com"
+          git add data/features/*.parquet || true
+          git commit -m "Auto-update features" || echo "No changes to commit"
+          git push || echo "No push needed"
 
 
   master-merge:
     name: Step 2 — Master Feature Merge
     runs-on: ubuntu-latest
-    needs: feature-engineering   # ✅ only run if step 1 succeeds
+    needs: feature-engineering
 
     steps:
       - uses: actions/checkout@v4
-
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
       - uses: actions/setup-python@v5
         with:
           python-version: "3.10"
+      - run: pip install -r requirements.txt
+      - run: python master_f.py
 
-      - name: Install Python dependencies (fast UV install)
+      - name: Commit Master Files
         run: |
-          pip install uv
-          uv pip install -r requirements.txt --system
-          uv pip install numba --system
-
-      # Optional: disable Numba if memory error starts happening
-      - name: Safe Mode — Set Numba fallback
-        if: failure()
-        run: echo "NUMBA_DISABLE_JIT=1" >> $GITHUB_ENV
-
-      - name: Run Master Merge
-        run: python master_features.py
+          git config --global user.name "github-actions"
+          git config --global user.email "github-actions@github.com"
+          git add data/master_features/*.parquet || true
+          git commit -m "Auto-update master merged features" || echo "No changes to commit"
+          git push || echo "No push needed"
