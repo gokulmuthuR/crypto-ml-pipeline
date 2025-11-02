@@ -4,7 +4,7 @@ on:
   schedule:
     - cron: "0 7 * * *"   # 12:30 PM IST
     - cron: "0 19 * * *"  # 12:30 AM IST
-  workflow_dispatch: {}
+  workflow_dispatch:
 
 jobs:
 
@@ -16,19 +16,34 @@ jobs:
       - uses: actions/checkout@v4
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
+
       - uses: actions/setup-python@v5
         with:
           python-version: "3.10"
-      - run: pip install -r requirements.txt
-      - run: python feature_engineering_v3.py
+
+      - name: Install Dependencies
+        run: |
+          pip install -r requirements.txt
+
+      - name: Run Feature Engineering
+        run: python feature_engineering_v3.py
 
       - name: Commit Feature Files
         run: |
           git config --global user.name "github-actions"
           git config --global user.email "github-actions@github.com"
-          git add data/features/*.parquet || true
-          git commit -m "Auto-update features" || echo "No changes to commit"
-          git push || echo "No push needed"
+
+          # Remove old outputs and add new ones
+          git rm -rf data/features/*.parquet || true
+          git add data/features/*.parquet
+
+          git commit -m "🧠 Feature Update $(date)" || echo "No feature changes"
+
+          # Pull + rebase to avoid conflicts
+          git pull --rebase --autostash || true
+          
+          # Push with retry to avoid 408 errors
+          for i in {1..5}; do git push && break || sleep 10; done
 
 
   master-merge:
@@ -40,16 +55,28 @@ jobs:
       - uses: actions/checkout@v4
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
+
       - uses: actions/setup-python@v5
         with:
           python-version: "3.10"
-      - run: pip install -r requirements.txt
-      - run: python master_f.py
+
+      - name: Install Dependencies
+        run: |
+          pip install -r requirements.txt
+
+      - name: Run Master Merge
+        run: python master_features.py
 
       - name: Commit Master Files
         run: |
           git config --global user.name "github-actions"
           git config --global user.email "github-actions@github.com"
-          git add data/master_features/*.parquet || true
-          git commit -m "Auto-update master merged features" || echo "No changes to commit"
-          git push || echo "No push needed"
+
+          git rm -rf data/master_features/*.parquet || true
+          git add data/master_features/*.parquet
+
+          git commit -m "📦 Master Feature Update $(date)" || echo "No master changes"
+
+          git pull --rebase --autostash || true
+
+          for i in {1..5}; do git push && break || sleep 10; done
