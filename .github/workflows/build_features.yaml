@@ -7,43 +7,34 @@ on:
   workflow_dispatch:
 
 jobs:
-
   feature-engineering:
     name: Step 1 — Feature Engineering
     runs-on: ubuntu-latest
 
     steps:
       - uses: actions/checkout@v4
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-
       - uses: actions/setup-python@v5
         with:
           python-version: "3.10"
 
-      - name: Install Dependencies
-        run: |
-          pip install -r requirements.txt
+      - name: Install dependencies
+        run: pip install -r requirements.txt
 
       - name: Run Feature Engineering
         run: python feature_engineering_v3.py --mode full --force-heavy
 
-      - name: Commit Feature Files
+      - name: Push feature outputs to data repo
         run: |
-          git config --global user.name "github-actions"
-          git config --global user.email "github-actions@github.com"
-
-          # Remove old outputs and add new ones
-          git rm -rf data/features/*.parquet || true
-          git add data/features/*.parquet
-
-          git commit -m "🧠 Feature Update $(date)" || echo "No feature changes"
-
-          # Pull + rebase to avoid conflicts
-          git pull --rebase --autostash || true
-          
-          # Push with retry to avoid 408 errors
-          for i in {1..5}; do git push && break || sleep 10; done
+          echo "📤 Pushing feature outputs to data repo..."
+          git clone https://x-access-token:${{ secrets.DATA_REPO_PAT }}@github.com/gokulmuthuR/crypto-ml-data.git
+          mkdir -p crypto-ml-data/features
+          cp -r data/features/*.parquet crypto-ml-data/features/ || echo "No feature files found"
+          cd crypto-ml-data
+          git config user.name "github-actions"
+          git config user.email "github-actions@github.com"
+          git add features/
+          git commit -m "🧠 Auto-update features $(date)" || echo "No changes"
+          git push
 
 
   master-merge:
@@ -53,30 +44,25 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-
       - uses: actions/setup-python@v5
         with:
           python-version: "3.10"
 
-      - name: Install Dependencies
-        run: |
-          pip install -r requirements.txt
+      - name: Install dependencies
+        run: pip install -r requirements.txt
 
       - name: Run Master Merge
         run: python master_features.py --mode full
 
-      - name: Commit Master Files
+      - name: Push master outputs to data repo
         run: |
-          git config --global user.name "github-actions"
-          git config --global user.email "github-actions@github.com"
-
-          git rm -rf data/master_features/*.parquet || true
-          git add data/master_features/*.parquet
-
-          git commit -m "📦 Master Feature Update $(date)" || echo "No master changes"
-
-          git pull --rebase --autostash || true
-
-          for i in {1..5}; do git push && break || sleep 10; done
+          echo "📤 Pushing master outputs to data repo..."
+          git clone https://x-access-token:${{ secrets.DATA_REPO_PAT }}@github.com/gokulmuthuR/crypto-ml-data.git
+          mkdir -p crypto-ml-data/master_features
+          cp -r data/master_features/*.parquet crypto-ml-data/master_features/ || echo "No master files found"
+          cd crypto-ml-data
+          git config user.name "github-actions"
+          git config user.email "github-actions@github.com"
+          git add master_features/
+          git commit -m "📦 Auto-update master features $(date)" || echo "No changes"
+          git push
