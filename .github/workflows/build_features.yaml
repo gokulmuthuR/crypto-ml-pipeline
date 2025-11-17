@@ -2,17 +2,19 @@ name: Build & Merge Crypto Features
 
 on:
   schedule:
-    - cron: "0 7 * * *"   # 12:30 PM IST
-    - cron: "0 19 * * *"  # 12:30 AM IST
+    - cron: "0 7 * * *"     # 12:30 PM IST
+    - cron: "0 19 * * *"    # 12:30 AM IST
   workflow_dispatch:
 
 jobs:
+
   feature-engineering:
     name: Step 1 — Feature Engineering
     runs-on: ubuntu-latest
 
     steps:
       - uses: actions/checkout@v4
+
       - uses: actions/setup-python@v5
         with:
           python-version: "3.10"
@@ -23,18 +25,11 @@ jobs:
       - name: Run Feature Engineering
         run: python feature_engineering_v3.py --mode full --force-heavy
 
-      - name: Push feature outputs to data repo
-        run: |
-          echo "📤 Pushing feature outputs to data repo..."
-          git clone https://x-access-token:${{ secrets.DATA_REPO_PAT }}@github.com/gokulmuthuR/crypto-ml-data.git
-          mkdir -p crypto-ml-data/features
-          cp -r data/features/*.parquet crypto-ml-data/features/ || echo "No feature files found"
-          cd crypto-ml-data
-          git config user.name "github-actions"
-          git config user.email "github-actions@github.com"
-          git add features/
-          git commit -m "🧠 Auto-update features $(date)" || echo "No changes"
-          git push
+      - name: Upload Feature Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: features
+          path: data/features/*.parquet
 
 
   master-merge:
@@ -44,6 +39,7 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
+
       - uses: actions/setup-python@v5
         with:
           python-version: "3.10"
@@ -51,18 +47,17 @@ jobs:
       - name: Install dependencies
         run: pip install -r requirements.txt
 
+      - name: Download Feature Artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: features
+          path: data/features/
+
       - name: Run Master Merge
         run: python master_features.py --mode full
 
-      - name: Push master outputs to data repo
-        run: |
-          echo "📤 Pushing master outputs to data repo..."
-          git clone https://x-access-token:${{ secrets.DATA_REPO_PAT }}@github.com/gokulmuthuR/crypto-ml-data.git
-          mkdir -p crypto-ml-data/master_features
-          cp -r data/master_features/*.parquet crypto-ml-data/master_features/ || echo "No master files found"
-          cd crypto-ml-data
-          git config user.name "github-actions"
-          git config user.email "github-actions@github.com"
-          git add master_features/
-          git commit -m "📦 Auto-update master features $(date)" || echo "No changes"
-          git push
+      - name: Upload Master Feature Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: master_features
+          path: data/master_features/*.parquet
